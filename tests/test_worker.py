@@ -8,12 +8,17 @@ from hermes.worker import ANALYZE_QUEUE, EXTRACT_QUEUE, RESULT_INDEX, Worker
 @pytest.fixture
 def mock_queue():
     with patch("hermes.worker.JobQueue") as mock:
-        yield mock.return_value
+        instance = mock.return_value
+        instance.pop = AsyncMock()
+        instance.push = AsyncMock()
+        yield instance
 
 @pytest.fixture
 def mock_storage():
     with patch("hermes.worker.Storage") as mock:
-        yield mock.return_value
+        instance = mock.return_value
+        instance.save = AsyncMock()
+        yield instance
 
 @pytest.fixture
 def mock_scraper():
@@ -47,15 +52,13 @@ async def test_worker_flow(mock_queue, mock_storage, mock_scraper, mock_ollama):
         None
     ]
 
-    # Let's verify logic by simulating the flow manually using worker's components.
-
-    # --- SCENARIO: Scrape ---
+    # Run one iteration of scrape loop logic manually
     job = {"url": "http://test.com", "query": "find price"}
 
     # Logic from process_scrape_queue
     html = await worker.scraper.fetch_page(job["url"])
     cleaned = worker.scraper.clean_html(html)
-    worker.queue.push(ANALYZE_QUEUE, {
+    await worker.queue.push(ANALYZE_QUEUE, {
         "url": job["url"],
         "query": job["query"],
         "text_content": cleaned
@@ -63,7 +66,7 @@ async def test_worker_flow(mock_queue, mock_storage, mock_scraper, mock_ollama):
 
     # Verify Scrape
     mock_scraper.fetch_page.assert_awaited_with("http://test.com")
-    mock_queue.push.assert_called_with(ANALYZE_QUEUE, {
+    mock_queue.push.assert_awaited_with(ANALYZE_QUEUE, {
         "url": "http://test.com",
         "query": "find price",
         "text_content": "Sample text"
@@ -77,11 +80,9 @@ async def test_worker_flow(mock_queue, mock_storage, mock_scraper, mock_ollama):
     }
 
     # Logic from process_analyze_queue
-    # Mock Ollama response
-    # response = worker.ollama_client.generate(...) -> "price, product"
     labels = ["price", "product"]
 
-    worker.queue.push(EXTRACT_QUEUE, {
+    await worker.queue.push(EXTRACT_QUEUE, {
         "url": analyze_job["url"],
         "query": analyze_job["query"],
         "text_content": analyze_job["text_content"],
@@ -89,8 +90,7 @@ async def test_worker_flow(mock_queue, mock_storage, mock_scraper, mock_ollama):
     })
 
     # Verify Analyze
-    # mock_ollama.generate.assert_called() # Hard to check exact prompt
-    mock_queue.push.assert_called_with(EXTRACT_QUEUE, {
+    mock_queue.push.assert_awaited_with(EXTRACT_QUEUE, {
         "url": "http://test.com",
         "query": "find price",
         "text_content": "Sample text",
@@ -106,17 +106,16 @@ async def test_worker_flow(mock_queue, mock_storage, mock_scraper, mock_ollama):
     }
 
     # Logic from process_extract_queue
-    # extraction = worker.scraper.extract(...)
     extraction = {"price": ["10"]}
 
-    worker.storage.save(RESULT_INDEX, {
+    await worker.storage.save(RESULT_INDEX, {
         "url": extract_job["url"],
         "query": extract_job["query"],
         "extracted_data": extraction
     })
 
     # Verify Extract
-    mock_storage.save.assert_called_with(RESULT_INDEX, {
+    mock_storage.save.assert_awaited_with(RESULT_INDEX, {
         "url": "http://test.com",
         "query": "find price",
         "extracted_data": {"price": ["10"]}

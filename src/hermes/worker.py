@@ -57,7 +57,7 @@ class Worker:
         """
         logger.info("Listening on scrape_queue...")
         while True:
-            job = self.queue.pop(SCRAPE_QUEUE)
+            job = await self.queue.pop(SCRAPE_QUEUE)
             if not job:
                 await asyncio.sleep(1)
                 continue
@@ -81,7 +81,7 @@ class Worker:
                     "query": user_query,
                     "text_content": truncated_text
                 }
-                self.queue.push(ANALYZE_QUEUE, next_job)
+                await self.queue.push(ANALYZE_QUEUE, next_job)
 
             except Exception as e:
                 logger.error(f"[Scrape] Failed: {e}")
@@ -93,7 +93,7 @@ class Worker:
         """
         logger.info("Listening on analyze_queue...")
         while True:
-            job = self.queue.pop(ANALYZE_QUEUE)
+            job = await self.queue.pop(ANALYZE_QUEUE)
             if not job:
                 await asyncio.sleep(1)
                 continue
@@ -136,7 +136,7 @@ class Worker:
                     "text_content": job.get("text_content"),
                     "labels": labels
                 }
-                self.queue.push(EXTRACT_QUEUE, next_job)
+                await self.queue.push(EXTRACT_QUEUE, next_job)
 
             except Exception as e:
                 logger.error(f"[Analyze] Failed: {e}")
@@ -148,7 +148,7 @@ class Worker:
         """
         logger.info("Listening on extract_queue...")
         while True:
-            job = self.queue.pop(EXTRACT_QUEUE)
+            job = await self.queue.pop(EXTRACT_QUEUE)
             if not job:
                 await asyncio.sleep(1)
                 continue
@@ -178,7 +178,7 @@ class Worker:
                     "query": job.get("query"),
                     "extracted_data": extraction_result
                 }
-                self.storage.save(RESULT_INDEX, doc)
+                await self.storage.save(RESULT_INDEX, doc)
                 logger.info(f"[Extract] Finished processing {job.get('url')}")
 
             except Exception as e:

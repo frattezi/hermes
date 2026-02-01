@@ -1,7 +1,7 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
-from elasticsearch import Elasticsearch
+from elasticsearch import AsyncElasticsearch
 
 from hermes.config import settings
 
@@ -9,18 +9,18 @@ logger = logging.getLogger(__name__)
 
 class Storage:
     """
-    Elasticsearch wrapper for storing results.
+    Elasticsearch wrapper for storing results (Async).
     """
     def __init__(self, es_url: str = settings.elasticsearch_url):
-        self.client = Elasticsearch(es_url)
+        self.client = AsyncElasticsearch(es_url)
 
-    def save(self, index: str, document: dict):
+    async def save(self, index: str, document: dict):
         """
         Index a document.
         """
         try:
-            document["timestamp"] = datetime.utcnow().isoformat()
-            resp = self.client.index(index=index, document=document)
+            document["timestamp"] = datetime.now(timezone.utc).isoformat()
+            resp = await self.client.index(index=index, document=document)
             logger.info(f"Saved document to {index}: {resp['_id']}")
             return resp['_id']
         except Exception as e:
