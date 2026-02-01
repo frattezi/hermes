@@ -12,14 +12,23 @@ class Scraper:
     A class to scrape web pages using AI-based extraction.
     """
 
-    def __init__(self, api_key: str | None = None):
+    def __init__(
+        self,
+        api_key: str | None = None,
+        base_url: str | None = None,
+        model: str = "gpt-3.5-turbo",
+    ):
         """
         Initialize the Scraper.
 
         Args:
             api_key: OpenAI API key. If None, it attempts to load from env.
+            base_url: Base URL for the LLM API (e.g., for Ollama).
+            model: The model to use for extraction.
         """
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
+        self.base_url = base_url
+        self.model = model
 
     @retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
     async def fetch_page(self, url: str) -> str:
@@ -94,7 +103,7 @@ class Scraper:
         # Note: We use raw JSON extraction here because the rules are dynamic.
         # For fixed schemas, we should use Pydantic models.
         print("Extracting data with AI...")
-        client = AsyncOpenAI(api_key=self.api_key)
+        client = AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
 
         prompt = f"""
         You are an expert web scraper.
@@ -110,7 +119,7 @@ class Scraper:
 
         try:
             response = await client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model=self.model,
                 messages=[
                     {
                         "role": "system",
