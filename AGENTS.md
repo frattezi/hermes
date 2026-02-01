@@ -10,6 +10,11 @@ Hermes is an API capable of scrapping webpage using AI techniques.
 - **Docstrings**: All modules, classes, and public functions must have docstrings.
 - **Dependency Management**: Poetry.
 
+## Design Principles
+- **SOLID**: Adhere to SOLID principles. Classes should have a single responsibility.
+- **KISS**: Keep It Simple, Stupid. Avoid over-engineering.
+- **TDD**: Test-Driven Development. Write tests before implementation when possible.
+
 ## Project Structure
 - `src/hermes`: Source code.
 - `tests`: Tests.

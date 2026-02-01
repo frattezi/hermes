@@ -49,13 +49,11 @@ class Scraper:
         """
         soup = BeautifulSoup(html_content, "html.parser")
 
-        # Remove script and style elements
         for script_or_style in soup(["script", "style"]):
             script_or_style.decompose()
 
         text = soup.get_text(separator=" ")
 
-        # Clean up whitespace
         lines = (line.strip() for line in text.splitlines())
         chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
         text = "\n".join(chunk for chunk in chunks if chunk)
@@ -112,7 +110,7 @@ class Scraper:
 
         try:
             response = await client.chat.completions.create(
-                model="gpt-3.5-turbo",  # Or gpt-4o-mini
+                model="gpt-3.5-turbo",
                 messages=[
                     {
                         "role": "system",

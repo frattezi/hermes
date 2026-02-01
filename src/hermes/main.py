@@ -12,7 +12,6 @@ async def main():
     """
     print("Starting Hermes Scraper POC...")
 
-    # POC Configuration
     url = "https://example.com"
     rules = "Extract the page title and the main heading."
 
